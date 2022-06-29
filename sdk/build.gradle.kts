@@ -16,8 +16,8 @@ repositories {
 
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1")
-    implementation("com.fazecast:jSerialComm:2.7.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.3")
+    implementation("com.fazecast:jSerialComm:2.9.2")// https://mvnrepository.com/artifact/com.fazecast/jSerialComm
 
 }
 

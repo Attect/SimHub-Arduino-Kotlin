@@ -1,49 +1,61 @@
-// Copyright 2000-2021 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
-import androidx.compose.desktop.Window
-import androidx.compose.material.Text
+package studio.attect.simhub.arduino
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.application
 import kotlinx.coroutines.runBlocking
-import studio.attect.simhub.arduino.sdk.SDK
 import studio.attect.simhub.arduino.sdk.SimHubArduinoDeviceSession
+import kotlin.system.exitProcess
 
 fun byteArrayOfInts(vararg ints: Int) = ByteArray(ints.size) { pos -> ints[pos].toByte() }
 
-fun main() = runBlocking {
+var currentFrequency by mutableStateOf(0)
+fun main(args: Array<String>?): Unit = runBlocking {
+    val session = SimHubArduinoDeviceSession("COM6")
+    if (!session.openAsync().await()) {
+        println("端口${session.portDescriptor}打开失败")
+        exitProcess(-1)
+    }
+    session.addStatusListener {
+        println("status:$it")
+    }
+    application() {
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "SimHub Device"
+        ) {
 
-    val session = SimHubArduinoDeviceSession()
-    GlobalScope.launch {
-        println("A")
-        launch {
-            if(!session.open("COM5")){
-                println("open failed")
-            }
-        }
-
-        session.statusChannel.consumeEach {
-            println("status:$it")
+            App(session)
         }
     }
 
-    Window {
 
+}
 
-        var text by remember { mutableStateOf("Hello, World!") }
+@Composable
+fun App(session: SimHubArduinoDeviceSession) {
 
-        MaterialTheme {
+    MaterialTheme {
+        Column {
+            Box {
+                Text("当前频率：${currentFrequency}Hz", fontSize = 64.sp)
+            }
             Button(onClick = {
-                text = SDK().test()
+                session.test()
             }) {
-                Text(text)
+                Text("测试")
             }
         }
+
     }
+
 }
