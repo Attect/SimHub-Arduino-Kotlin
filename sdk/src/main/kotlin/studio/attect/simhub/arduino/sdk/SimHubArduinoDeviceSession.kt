@@ -13,9 +13,10 @@ import studio.attect.simhub.arduino.sdk.response.ResponseFeature
 import kotlin.coroutines.CoroutineContext
 import kotlin.experimental.xor
 
-class SimHubArduinoDeviceSession(val portDescriptor: String) : CoroutineScope {
+class SimHubArduinoDeviceSession(val systemPortName: String) : CoroutineScope {
     private val job = Job()
-    override val coroutineContext: CoroutineContext = Dispatchers.IO + job + CoroutineName("SimHubArduinoDevice-$portDescriptor")
+    override val coroutineContext: CoroutineContext =
+        Dispatchers.IO + job + CoroutineName("SimHubArduinoDevice-$systemPortName")
 
     private lateinit var port: SerialPort
     private var baudRate = 19200
@@ -44,13 +45,16 @@ class SimHubArduinoDeviceSession(val portDescriptor: String) : CoroutineScope {
     var keepAliveJob: Job? = null
     var sendJob: Job? = null
 
+    suspend fun join() {
+        job.join()
+    }
 
     fun openAsync(): Deferred<Boolean> = async {
         if (this@SimHubArduinoDeviceSession::port.isInitialized) return@async false
-        if (portDescriptor.isBlank()) return@async false
+        if (systemPortName.isBlank()) return@async false
         updateStatus(Status.CONNECTING)
         kotlin.runCatching {
-            port = SerialPort.getCommPort(portDescriptor.trim()).apply {
+            port = SerialPort.getCommPort(systemPortName.trim()).apply {
                 baudRate = this@SimHubArduinoDeviceSession.baudRate
                 if (!openPort()) return@async false
                 setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 0, 0)
@@ -133,9 +137,9 @@ class SimHubArduinoDeviceSession(val portDescriptor: String) : CoroutineScope {
         requestChannel.send(requestFeature)
         requestFeature.readData(port)?.let {
             feature = it
-            feature.forEach {
-                println("feature ${it.name}")
-            }
+//            feature.forEach {
+//                println("feature ${it.name}")
+//            }
         }
     }
 
@@ -356,7 +360,7 @@ class SimHubArduinoDeviceSession(val portDescriptor: String) : CoroutineScope {
         /**
          * 查表CRC计算，来自ArqSerial.h
          */
-        val crcTable = arrayOf(
+        private val crcTable = arrayOf(
             0,
             213,
             127,
@@ -615,8 +619,8 @@ class SimHubArduinoDeviceSession(val portDescriptor: String) : CoroutineScope {
             249
         ).map { it.toByte() }.toByteArray()
 
-        const val PROTOCOL_HEADER = 0x01.toByte()
-        const val ZERO_BYTE = 0.toByte()
-        const val PACKAGE_ID_LESS_THAN = 0x80.toByte()
+        private const val PROTOCOL_HEADER = 0x01.toByte()
+        private const val ZERO_BYTE = 0.toByte()
+        private const val PACKAGE_ID_LESS_THAN = 0x80.toByte()
     }
 }
